@@ -1,0 +1,18 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-azuretools.vscode-docker",
+    "eamodio.gitlens",
+    "redhat.vscode-yaml",
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker",
+    "naumovs.color-highlight",
+    "mikestead.dotenv",
+    "gruntfuggly.todo-tree"
+  ]
+} 

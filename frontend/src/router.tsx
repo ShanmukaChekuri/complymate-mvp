@@ -57,6 +57,10 @@ export const router = createBrowserRouter([
         ],
       },
       {
+        path: 'chat',
+        element: <ProtectedRoute>{withSuspense(Chat)}</ProtectedRoute>,
+      },
+      {
         path: '/',
         element: (
           <ProtectedRoute>
@@ -73,10 +77,6 @@ export const router = createBrowserRouter([
             element: withSuspense(Forms),
           },
           {
-            path: 'chat',
-            element: withSuspense(Chat),
-          },
-          {
             path: 'settings',
             element: withSuspense(Settings),
           },
@@ -88,4 +88,4 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]); 
+]);

@@ -55,6 +55,19 @@ export default function HeroUploadCard() {
   // Mock: get auth token (replace with real auth)
   const getToken = () => localStorage.getItem('token') || '';
 
+  function extractErrorMessage(err: any) {
+    if (Array.isArray(err.detail)) {
+      return err.detail.map((e: any) => e.msg).join(', ');
+    }
+    if (typeof err.detail === 'string') {
+      return err.detail;
+    }
+    if (typeof err.error === 'string') {
+      return err.error;
+    }
+    return 'Upload failed';
+  }
+
   // Step 1: Create a form, Step 2: Analyze the PDF
   const uploadAndAnalyze = async (file: File) => {
     setProgress(0);
@@ -71,13 +84,15 @@ export default function HeroUploadCard() {
         },
         body: JSON.stringify({
           title: file.name,
-          description: 'Uploaded via dashboard',
-          status: 'pending',
+          type: 'OSHA',
+          year: new Date().getFullYear(),
+          content: {},
+          form_metadata: { uploaded_via: 'dashboard' },
         }),
       });
       if (!formRes.ok) {
         const err = await formRes.json();
-        setError(err.detail || 'Failed to create form');
+        setError(extractErrorMessage(err));
         setLoading(false);
         return;
       }
@@ -108,7 +123,7 @@ export default function HeroUploadCard() {
       setProgress(100);
       if (!res.ok) {
         const err = await res.json();
-        setError(err.error || err.detail || 'Upload failed');
+        setError(extractErrorMessage(err));
         setLoading(false);
         return;
       }
@@ -179,30 +194,59 @@ export default function HeroUploadCard() {
         {error && <div className="text-red-200 mt-2 font-semibold">{error}</div>}
         {analysis && (
           <div className="w-full mt-4 bg-white/10 rounded-lg p-4 text-left text-white/90 shadow-inner">
-            <div className="font-semibold mb-2">Extracted Data</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {Object.entries(analysis.extracted.fields).map(
-                ([field, val]: [string, ExtractedField]) => (
-                  <div key={field} className="flex items-center gap-2">
-                    <span className="font-medium">{field}:</span>
-                    <span>
-                      {val.value || <span className="italic text-red-200">(missing)</span>}
-                    </span>
-                    <span className="text-xs ml-2">({Math.round(val.confidence * 100)}%)</span>
-                  </div>
-                )
-              )}
-            </div>
-            <div className="mt-2 text-xs text-white/70">
-              Form type: {analysis.extracted.form_type}
-            </div>
-            <div className="mt-2 text-xs text-white/70">
-              Completion: {analysis.completion_percentage}%
-            </div>
-            {analysis.missing_fields.missing.length > 0 && (
-              <div className="mt-2 text-xs text-yellow-200">
-                Missing: {analysis.missing_fields.missing.join(', ')}
-              </div>
+            {analysis.extracted && analysis.extracted.fields ? (
+              <>
+                <div className="font-semibold mb-2">Extracted Data</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {Object.entries(analysis.extracted.fields).map(
+                    ([field, val]: [string, unknown]) => {
+                      if (
+                        val &&
+                        typeof val === 'object' &&
+                        'value' in val &&
+                        'confidence' in val &&
+                        typeof (val as any).value === 'string' &&
+                        typeof (val as any).confidence === 'number'
+                      ) {
+                        const fieldVal = val as ExtractedField;
+                        return (
+                          <div key={field} className="flex items-center gap-2">
+                            <span className="font-medium">{field}:</span>
+                            <span>
+                              {fieldVal.value || (
+                                <span className="italic text-red-200">(missing)</span>
+                              )}
+                            </span>
+                            <span className="text-xs ml-2">
+                              ({Math.round(fieldVal.confidence * 100)}%)
+                            </span>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div key={field} className="flex items-center gap-2">
+                            <span className="font-medium">{field}:</span>
+                            <span className="italic text-red-200">(invalid field data)</span>
+                          </div>
+                        );
+                      }
+                    }
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-white/70">
+                  Form type: {analysis.extracted.form_type}
+                </div>
+                <div className="mt-2 text-xs text-white/70">
+                  Completion: {analysis.completion_percentage}%
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-semibold mb-2">Upload Result</div>
+                <div>File: {analysis.filename}</div>
+                <div>Size: {analysis.size} bytes</div>
+                <div>{analysis.message}</div>
+              </>
             )}
           </div>
         )}

@@ -5,6 +5,7 @@ type Message = {
   sender: 'user' | 'assistant' | 'error';
   content: string;
   formUrl?: string;
+  file_urls?: { form_name: string; url: string }[];
 };
 
 type ChatState = {
@@ -135,7 +136,7 @@ const useChatStore = create<ChatState>((set, get) => ({
         id: `assistant-${Date.now()}`,
         sender: 'assistant',
         content: data.message,
-        formUrl: data.formUrl,
+        file_urls: data.file_urls,
       };
       addMessage(assistantMessage);
     } catch (error) {

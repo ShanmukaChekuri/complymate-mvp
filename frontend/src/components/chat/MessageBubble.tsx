@@ -21,7 +21,7 @@ interface MessageBubbleProps {
   id: string;
   sender: MessageSender;
   content: string;
-  formUrl?: string;
+  file_urls?: { form_name: string; url: string }[];
 }
 
 const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
@@ -63,7 +63,7 @@ const CodeBlock = ({ node, inline, className, children, ...props }: any) => {
   );
 };
 
-export const MessageBubble = ({ id, sender, content, formUrl }: MessageBubbleProps) => {
+export const MessageBubble = ({ id, sender, content, file_urls }: MessageBubbleProps) => {
   const isUser = sender === 'user';
   const isAssistant = sender === 'assistant';
   const isError = sender === 'error';
@@ -134,21 +134,24 @@ export const MessageBubble = ({ id, sender, content, formUrl }: MessageBubblePro
           </ReactMarkdown>
         </div>
 
-        {(formUrl || isAssistant) && (
+        {(file_urls || isAssistant) && (
           <div className="flex items-center gap-2 mt-4 flex-wrap border-t border-black/10 dark:border-white/10 pt-3 -mb-2">
-            {formUrl && isAssistant && (
-              <a
-                href={`${import.meta.env.VITE_API_URL}${formUrl}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                download
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600/20 text-teal-800 dark:text-teal-300 no-underline hover:bg-teal-600/30 transition-colors text-sm font-medium"
-              >
-                <Download size={16} />
-                <span>Download Form</span>
-              </a>
-            )}
-            {isAssistant && !formUrl && (
+            {file_urls &&
+              file_urls.length > 0 &&
+              file_urls.map((file, index) => (
+                <a
+                  key={index}
+                  href={`${import.meta.env.VITE_API_URL}${file.url}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-600/20 text-teal-800 dark:text-teal-300 no-underline hover:bg-teal-600/30 transition-colors text-sm font-medium"
+                >
+                  <Download size={16} />
+                  <span>{file.form_name}</span>
+                </a>
+              ))}
+            {isAssistant && (!file_urls || file_urls.length === 0) && (
               <button
                 onClick={handlePlayback}
                 className="p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

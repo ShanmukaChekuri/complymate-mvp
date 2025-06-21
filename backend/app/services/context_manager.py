@@ -65,6 +65,7 @@ class ContextManager:
         """Creates a new, empty session context with a given ID."""
         if session_id not in self.sessions:
             self.sessions[session_id] = {
+                "session_id": session_id,
                 "user_id": user_id,
                 "conversation_history": [],
                 "form_data": {},

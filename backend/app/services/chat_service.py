@@ -2,7 +2,7 @@ import logging
 import json
 import os
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from app.services.llm_service import LLMService
 from app.services.form_filler_service import FormFillerService
@@ -21,15 +21,10 @@ class ChatService:
     def handle_chat(self, user_message: str) -> Dict[str, Any]:
         context = self.context_manager.get_context(self.session_id)
         
-        # If no context exists, create a new session with the existing session_id
         if not context:
             self.context_manager.create_session_with_id(self.session_id)
-            context = self.context_manager.get_context(self.session_id)
-        
-        # This is a temporary addition to allow the user to select a form type.
-        # This logic should be refined.
-        if "300" in user_message.lower() and not context.get("current_form_type"):
-            self.context_manager.set_form_type(self.session_id, "300")
+            # Default to the unified incident report workflow
+            self.context_manager.update_context(self.session_id, context_updates={"current_form_type": "incident_report"})
             context = self.context_manager.get_context(self.session_id)
 
         # 1. Always try to extract data from the user's message first.
@@ -43,6 +38,9 @@ class ChatService:
         self.context_manager.update_context(self.session_id, message={"role": "user", "content": user_message})
         context = self.context_manager.get_context(self.session_id)
 
+        # Add the last user message to context for completion signal detection
+        context["last_user_message"] = user_message
+
         # 3. Generate the AI's response using the updated context.
         ai_response_text = self.llm_service.generate_response(user_message, context)
         logger.info(f"AI response for session {self.session_id}: {ai_response_text}")
@@ -52,36 +50,49 @@ class ChatService:
         json_match = re.search(r'{\s*"action"\s*:\s*"generate_form"\s*}', ai_response_text)
         
         if json_match:
-            return self._generate_and_respond_with_form(context)
+            # The context now holds all data for all forms.
+            return self._generate_all_forms(context)
         
         # 5. If it's a regular message, add it to history and return.
         self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": ai_response_text})
         return {"message": ai_response_text, "session_id": self.session_id}
 
-    def _generate_and_respond_with_form(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        logger.info(f"Generating form for session {self.session_id}")
+    def _generate_all_forms(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generates all three OSHA forms (300, 300A, 301) using the collected data.
+        """
+        logger.info(f"Generating all forms for session {self.session_id}")
         form_data = context.get("form_data", {})
-        form_type = context.get("current_form_type", "300")
+        generated_files = []
+        error_messages = []
 
-        try:
-            pdf_path = self.form_filler.generate_form(form_type, form_data)
-            if pdf_path:
-                # The PDF path is now an absolute path. We need just the filename for the URL.
-                file_name = os.path.basename(pdf_path)
-                download_url = f"/api/v1/files/download/{file_name}"
-                
-                response_message = f"I've generated the OSHA {form_type} form for you. You can download it here: [{file_name}]({download_url})"
-                self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": response_message})
-                return {"message": response_message, "session_id": self.session_id, "file_url": download_url}
-            else:
-                error_message = "I'm sorry, I encountered an error while generating the PDF. Please try again."
-                self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": error_message})
-                return {"message": error_message, "session_id": self.session_id}
-        except Exception as e:
-            logger.error(f"Failed to generate PDF for session {self.session_id}: {e}")
-            error_message = "I'm sorry, I encountered an error while generating the PDF. Please try again."
-            self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": error_message})
-            return {"message": error_message, "session_id": self.session_id}
+        for form_type in ["300", "300A", "301"]:
+            try:
+                pdf_path = self.form_filler.generate_form(form_type, form_data)
+                if pdf_path:
+                    file_name = os.path.basename(pdf_path)
+                    download_url = f"/api/v1/files/download/{file_name}"
+                    generated_files.append({"form_name": f"OSHA Form {form_type}", "url": download_url})
+                else:
+                    error_messages.append(f"Failed to generate OSHA Form {form_type}.")
+            except Exception as e:
+                logger.error(f"Failed to generate PDF for form {form_type} in session {self.session_id}: {e}")
+                error_messages.append(f"An unexpected error occurred while generating OSHA Form {form_type}.")
+        
+        if not generated_files:
+            response_message = "I'm sorry, I encountered errors and could not generate any of the forms. Please try again."
+            self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": response_message})
+            return {"message": response_message, "session_id": self.session_id}
+
+        # Build a nice response message with all the links
+        links_markdown = "\n".join([f"- [{file['form_name']}]({file['url']})" for file in generated_files])
+        response_message = f"I've generated the complete set of OSHA forms for this incident. You can download them here:\n{links_markdown}"
+        
+        if error_messages:
+            response_message += "\n\nI encountered some issues:\n" + "\n".join(f"- {error}" for error in error_messages)
+
+        self.context_manager.update_context(self.session_id, message={"role": "assistant", "content": response_message})
+        return {"message": response_message, "session_id": self.session_id, "file_urls": generated_files}
 
     def _determine_form_type(self, message: str) -> Optional[str]:
         """

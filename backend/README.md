@@ -1,166 +1,183 @@
 # ComplyMate Backend
 
-This is the backend service for ComplyMate, an AI-powered OSHA compliance automation platform.
+AI-powered OSHA compliance automation backend built with FastAPI.
 
 ## Quick Start
 
-The easiest way to get started is to use the development script:
+### Option 1: Use the comprehensive startup script (Recommended)
 
 ```bash
-# Create and activate virtual environment
-python scripts/dev.py setup
-# On Windows:
-venv\Scripts\activate
-# On Unix/MacOS:
-source venv/bin/activate
-
-# Install dependencies
-python scripts/dev.py install
-
-# Initialize database
-python scripts/dev.py init-db
-
-# Run migrations
-python scripts/dev.py migrate
-
-# Run tests
-python scripts/dev.py test
-
-# Start development server
-python scripts/dev.py run
+cd backend
+python scripts/start_server.py
 ```
 
-## Manual Setup
+This script will:
 
-If you prefer to run commands manually:
+- Check all dependencies
+- Set up environment variables
+- Download required models
+- Start the development server
 
-1. Create a virtual environment:
+### Option 2: Manual setup
+
+```bash
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up models (first time only)
+python scripts/setup_models.py
+
+# Start the server
+python scripts/run_dev.py
+```
+
+## Development
+
+### Prerequisites
+
+- Python 3.8+
+- pip
+- Virtual environment (recommended)
+
+### Installation
+
+1. Create and activate a virtual environment:
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 2. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Create a `.env` file in the backend directory with the following variables:
-```env
-PROJECT_NAME=ComplyMate
-VERSION=0.1.0
-API_V1_STR=/api/v1
+3. Set up models:
 
-# CORS Configuration
-CORS_ORIGINS=["http://localhost:3000"]
-
-# Database Configuration
-POSTGRES_SERVER=localhost
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=complymate
-
-# JWT Configuration
-SECRET_KEY=your-secret-key-here
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# AI Service Configuration
-OPENROUTER_API_KEY=your-openrouter-api-key
-OPENROUTER_MODEL=anthropic/claude-3-opus-20240229
-
-# File Storage Configuration
-UPLOAD_DIR=uploads
-MAX_UPLOAD_SIZE=10485760
-```
-
-4. Initialize the database:
 ```bash
-python scripts/init_db.py
+python scripts/setup_models.py
 ```
 
-5. Run migrations:
-```bash
-alembic upgrade head
-```
+### Running the Server
 
-6. Start the development server:
+#### Development Mode
+
 ```bash
 python scripts/run_dev.py
 ```
 
-The server will be available at `http://localhost:8000`
+#### Production Mode
 
-## Testing
-
-1. Run all tests:
 ```bash
-python scripts/run_tests.py
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-2. Run specific test types:
-```bash
-# Run pytest only
-pytest tests/ -v
+### API Documentation
 
-# Run API tests only
-python scripts/test_api.py
+Once the server is running, visit:
+
+- Swagger UI: http://localhost:8000/api/v1/docs
+- ReDoc: http://localhost:8000/api/v1/redoc
+- Health Check: http://localhost:8000/health
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. KeyboardInterrupt/Asyncio Errors
+
+If you encounter KeyboardInterrupt or asyncio errors when stopping the server:
+
+- Use `Ctrl+C` to stop the server gracefully
+- The server now has proper shutdown handlers
+- If issues persist, try using the comprehensive startup script
+
+#### 2. Model Loading Issues
+
+If models fail to load:
+
+- Run `python scripts/setup_models.py` to download required models
+- Check your internet connection (models are downloaded from Hugging Face)
+- Ensure you have sufficient disk space for model caching
+
+#### 3. spaCy Model Not Found
+
+If you get spaCy model errors:
+
+```bash
+python -m spacy download en_core_web_lg
 ```
 
-## API Documentation
+#### 4. Memory Issues
 
-Once the server is running, you can access:
-- Swagger UI: `http://localhost:8000/api/v1/docs`
-- ReDoc: `http://localhost:8000/api/v1/redoc`
+The document intelligence models require significant memory:
+
+- Ensure you have at least 4GB RAM available
+- Consider using CPU-only mode (already configured)
+- Models are loaded with timeout protection
+
+### Environment Variables
+
+The following environment variables are automatically set:
+
+- `PYTHONUNBUFFERED=1`: Ensures proper logging
+- `HF_HUB_DISABLE_SYMLINKS_WARNING=1`: Suppresses Hugging Face warnings
+- `TRANSFORMERS_OFFLINE=0`: Allows online model downloads
 
 ## Project Structure
 
 ```
 backend/
-├── alembic/              # Database migrations
 ├── app/
-│   ├── api/             # API endpoints
-│   ├── core/            # Core functionality
-│   ├── db/              # Database
-│   ├── models/          # SQLAlchemy models
-│   ├── schemas/         # Pydantic schemas
-│   └── utils/           # Utility functions
-├── scripts/             # Utility scripts
-├── tests/               # Test files
-└── requirements.txt     # Dependencies
+│   ├── api/           # API routes and endpoints
+│   ├── core/          # Core configuration and utilities
+│   ├── db/            # Database models and session
+│   ├── models/        # SQLAlchemy models
+│   ├── schemas/       # Pydantic schemas
+│   ├── services/      # Business logic services
+│   └── main.py        # FastAPI application
+├── scripts/           # Utility scripts
+├── tests/             # Test files
+├── uploads/           # File upload directory
+└── requirements.txt   # Python dependencies
 ```
 
-## Development
+## API Endpoints
 
-1. Create new migrations:
-```bash
-alembic revision --autogenerate -m "description"
-```
+### Authentication
 
-2. Apply migrations:
-```bash
-alembic upgrade head
-```
+- `POST /api/v1/auth/register` - User registration
+- `POST /api/v1/auth/login` - User login
+- `POST /api/v1/auth/refresh` - Refresh token
 
-3. Rollback migrations:
-```bash
-alembic downgrade -1
-```
+### Files
 
-## Logging
+- `POST /api/v1/files/upload` - Upload PDF files
+- `GET /api/v1/files/` - List uploaded files
+- `GET /api/v1/files/{file_id}` - Get file details
 
-Logs are stored in the `logs` directory:
-- `app.log`: Application logs
-- `access.log`: Access logs
-- `error.log`: Error logs
+### Chat
+
+- `POST /api/v1/chat/` - Send chat message
+- `GET /api/v1/chat/history` - Get chat history
+
+### Forms
+
+- `GET /api/v1/forms/` - List available forms
+- `POST /api/v1/forms/analyze` - Analyze form structure
 
 ## Contributing
 
-1. Create a new branch for your feature
-2. Make your changes
-3. Run tests
-4. Submit a pull request
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## License
 
-This project is licensed under the MIT License. 
+This project is licensed under the MIT License.

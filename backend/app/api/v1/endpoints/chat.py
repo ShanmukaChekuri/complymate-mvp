@@ -1,158 +1,65 @@
-from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+import logging
+import uuid
+from typing import Optional
 
-from app.core.security import get_current_user
-from app.db.session import get_db
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+
+from app.core.dependencies import get_current_user, get_context_manager
 from app.models.user import User
-from app.models.chat import ChatSession, ChatMessage
-from app.schemas.chat import (
-    ChatSessionCreate,
-    ChatSessionUpdate,
-    ChatSessionResponse,
-    ChatMessageCreate,
-    ChatMessageResponse,
-)
+from app.services.chat_service import ChatService
+from app.services.context_manager import ContextManager
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/sessions", response_model=ChatSessionResponse)
-def create_chat_session(
-    *,
-    db: Session = Depends(get_db),
-    session_in: ChatSessionCreate,
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """
-    Create new chat session.
-    """
-    session = ChatSession(
-        user_id=current_user.id,
-        **session_in.dict()
-    )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    return session
+# --- Pydantic Models for Request and Response ---
 
-@router.get("/sessions", response_model=List[ChatSessionResponse])
-def list_chat_sessions(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    skip: int = 0,
-    limit: int = 100,
-) -> Any:
-    """
-    Retrieve chat sessions.
-    """
-    sessions = db.query(ChatSession).filter(
-        ChatSession.user_id == current_user.id
-    ).offset(skip).limit(limit).all()
-    return sessions
+class ChatRequest(BaseModel):
+    content: str
+    session_id: Optional[str] = None
 
-@router.get("/sessions/{session_id}", response_model=ChatSessionResponse)
-def get_chat_session(
-    *,
-    db: Session = Depends(get_db),
-    session_id: str,
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """
-    Get chat session by ID.
-    """
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id,
-        ChatSession.user_id == current_user.id
-    ).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found",
-        )
-    return session
+class ChatResponse(BaseModel):
+    message: str
+    session_id: str
+    file_url: Optional[str] = Field(None, alias="formUrl")
 
-@router.put("/sessions/{session_id}", response_model=ChatSessionResponse)
-def update_chat_session(
-    *,
-    db: Session = Depends(get_db),
-    session_id: str,
-    session_in: ChatSessionUpdate,
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """
-    Update chat session.
-    """
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id,
-        ChatSession.user_id == current_user.id
-    ).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found",
-        )
-    
-    for field, value in session_in.dict(exclude_unset=True).items():
-        setattr(session, field, value)
-    
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    return session
+    class Config:
+        populate_by_name = True
+        
+# --- Chat Endpoint ---
 
-@router.post("/sessions/{session_id}/messages", response_model=ChatMessageResponse)
-def create_chat_message(
-    *,
-    db: Session = Depends(get_db),
-    session_id: str,
-    message_in: ChatMessageCreate,
+@router.post("/chat", response_model=ChatResponse)
+async def handle_chat_endpoint(
+    request: ChatRequest,
     current_user: User = Depends(get_current_user),
-) -> Any:
+    context_manager: ContextManager = Depends(get_context_manager)
+):
     """
-    Create new chat message.
+    Handles a chat message, maintains conversation state, and returns the AI's response.
     """
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id,
-        ChatSession.user_id == current_user.id
-    ).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found",
-        )
-    
-    message = ChatMessage(
-        session_id=session.id,
-        **message_in.dict()
-    )
-    db.add(message)
-    db.commit()
-    db.refresh(message)
-    return message
+    try:
+        # If no session_id is provided by the client, start a new one.
+        session_id = request.session_id or str(uuid.uuid4())
+        
+        # Instantiate a new ChatService for each request, passing the singleton ContextManager.
+        chat_service = ChatService(session_id=session_id, context_manager=context_manager)
+        
+        # Process the user's message through the chat service.
+        response_data = chat_service.handle_chat(user_message=request.content)
+        
+        # Ensure the response data is a dictionary before creating the response model
+        if isinstance(response_data, dict):
+            return ChatResponse(**response_data)
+        else:
+            # Handle cases where response_data might not be a dict (e.g., error string)
+            logger.error(f"Unexpected response type from ChatService: {type(response_data)}")
+            # Fallback response
+            return ChatResponse(
+                message="An unexpected error occurred in the chat service.",
+                session_id=session_id
+            )
 
-@router.get("/sessions/{session_id}/messages", response_model=List[ChatMessageResponse])
-def list_chat_messages(
-    *,
-    db: Session = Depends(get_db),
-    session_id: str,
-    current_user: User = Depends(get_current_user),
-    skip: int = 0,
-    limit: int = 100,
-) -> Any:
-    """
-    Retrieve chat messages.
-    """
-    session = db.query(ChatSession).filter(
-        ChatSession.id == session_id,
-        ChatSession.user_id == current_user.id
-    ).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat session not found",
-        )
-    
-    messages = db.query(ChatMessage).filter(
-        ChatMessage.session_id == session_id
-    ).offset(skip).limit(limit).all()
-    return messages 
+    except Exception as e:
+        logger.error(f"Error in chat endpoint for user {current_user.id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="An internal server error occurred.") 

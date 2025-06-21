@@ -26,7 +26,6 @@ class Form(Base):
     user = relationship("User", back_populates="forms")
     versions = relationship("FormVersion", back_populates="form")
     analyses = relationship("FormAnalysis", back_populates="form")
-    chat_sessions = relationship("ChatSession", back_populates="form")
     files = relationship("File", back_populates="form")
 
 class FormVersion(Base):

@@ -1,7 +1,6 @@
-from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
+from typing import Any, List, Dict
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body, Response
 from sqlalchemy.orm import Session
-import pdfplumber
 import requests
 import os
 from fastapi.responses import JSONResponse
@@ -21,6 +20,7 @@ from app.schemas.form import (
     FormAnalysisResponse,
 )
 from app.core.config import settings
+from app.services.form_filler_service import FormFillerService
 
 router = APIRouter()
 
@@ -452,131 +452,38 @@ def chat_with_form(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Try to get first and last name, then full_name, then username, then 'User'
-    first_name = getattr(current_user, 'first_name', None)
-    last_name = getattr(current_user, 'last_name', None)
-    if first_name and last_name:
-        user_name = f"{first_name} {last_name}"
-    else:
-        user_name = (
-            getattr(current_user, 'full_name', None)
-            or getattr(current_user, 'username', None)
-            or "User"
-        )
+    """
+    Chat about a specific form.
+    """
+    # First check if the form exists and belongs to the user
     form = db.query(Form).filter(Form.id == form_id, Form.user_id == current_user.id).first()
-    if not form or not form.content:
-        raise HTTPException(status_code=404, detail="Form or extracted content not found")
-    
-    user_message = message.get("message", "")
-    extracted_text = form.content.get("text", "")
-    conversation_history = form.content.get("conversation", [])
-    # Initialize or get filled_fields
-    filled_fields = form.content.get("filled_fields", {})
-
-    # Dynamically adjust the session intro based on PDF upload status
-    if form.content.get("text"):
-        session_intro = (
-            "Welcome back, Safety Manager. I have your uploaded OSHA form PDF (oshaforms.pdf). "
-            "I'll extract all the necessary information and guide you through any missing or ambiguous fields. Let's get started!"
-        )
-    else:
-        session_intro = (
-            "Welcome back, Safety Manager. Please upload your OSHA form PDF (oshaforms.pdf) or select a previous draft to continue."
+    if not form:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Form not found",
         )
 
-    # Use the robust, enterprise-grade system prompt provided by the user, with dynamic intro
-    system_prompt = f'''
-{session_intro}
-
-You are ComplyMateGPT, the AI co‑pilot for ComplyMate, an enterprise-grade OSHA compliance platform.  Your job is to intake a user‑uploaded OSHA PDF (oshaforms.pdf), flawlessly parse every field, drive any missing or ambiguous data collection in a single conversational flow, apply OSHA's validation rules, and produce a fully populated PDF (Forms 300, 300A, 301) ready for download or API submission—all within two minutes and five conversational turns at most.
-
-Key Responsibilities:
-
-PDF Ingestion & Intelligent Parsing
-
-- Auto-detect and load the correct OSHA form template (300, 300A, 301).
-- Extract: employer name, EIN/establishment ID, NAICS code, address, year, total hours worked.
-- Loop through each injury entry: case number, employee ID & hire date, job title, injury date, description, nature, body part, days away, restriction, medical treatment, first aid.
-
-Contextual Memory & Summarization
-
-- Maintain a complete in-session memory of all provided answers and validation steps.
-- If context window approaches limits, automatically summarize earlier entries without asking the user.
-
-Focused Clarification & Validation
-
-- For each missing or invalid field, ask exactly one concise question.
-- Use multiple‑choice or preset quick‑reply buttons where feasible.
-- Enforce OSHA rules: date formats (MM/DD/YYYY), hire-date ≤ injury-date ≤ today, summary totals match entry sums, DART rate formula.
-
-Optimized Conversational Flow
-
-- Keep total back‑and‑forth under five turns, grouping related clarifications.
-- Offer users the option to batch‑confirm groups (e.g., "Should I set all four 2024 entries' dates to March 15?").
-
-PDF Population & Delivery
-
-- Map validated values back into the PDF form fields.
-- Present a single "Download Complete OSHA Forms (300, 300A, 301)" link or button.
-- If connected, ask once: "Submit directly to OSHA API now?"
-
-Automated Reminders & Reporting
-
-- Schedule and send reminders at 30/15/7/1 days before Form 300A deadline via email/SMS.
-- Generate a post‑submission summary dashboard: recordable count, DART rate, injury trend chart, and exportable CSV/PPT.
-
-Persona & Tone:
-
-- Trusted Advisor: Warm, concise, professional—address users by role (e.g., "Hello, Safety Manager").
-- Action‑Oriented: Use clear calls to action ("Upload your PDF", "Answer this one question", "Download now").
-
-Failure Modes & Safe Fallbacks:
-
-- PDF parse error (×2): "I'm having trouble reading your PDF. Would you prefer to switch to a quick‑fill form?"
-- Persistent ambiguity (×2): "This entry is unusual—should I flag for manual review or proceed with a best guess?"
-'''
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "system", "content": f"Current filled fields: {filled_fields}"},
-    ]
-    if extracted_text:
-        messages.append({"role": "system", "content": f"Relevant OSHA Form Content: {extracted_text[:2000]}"})
-    for msg in conversation_history:
-        messages.append(msg)
-    messages.append({"role": "user", "content": user_message})
-
-    response = requests.post(
-        "https://openrouter.ai/api/v1/chat/completions",
-        headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"},
-        json={
-            "model": OPENROUTER_MODEL,
-            "messages": messages
-        }
-    )
-    resp_json = response.json()
-    if "choices" in resp_json:
-        ai_response = resp_json["choices"][0]["message"]["content"]
+    try:
+        # Initialize chat service if not already initialized
+        from app.services.chat_service import ChatService
+        chat_service = ChatService()
         
-        # Update filled_fields using expanded extraction logic
-        filled_fields = extract_fields(user_message, filled_fields)
-
-        # Update conversation history
-        # Only add the greeting in the very first assistant reply
-        if not conversation_history:
-            ai_response = f"Hi {user_name}! {ai_response}"
-        conversation_history.extend([
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": ai_response}
-        ])
-        # Do not trim conversation history; pass all for best context
-        form.content["conversation"] = conversation_history
-        form.content["filled_fields"] = filled_fields
-        db.add(form)
-        db.commit()
-        return {"response": ai_response}
-    else:
-        print("OpenRouter API error:", resp_json)
-        return {"response": f"AI error: {resp_json.get('error', resp_json)}"}
+        # Process the message
+        response = chat_service.process_message(
+            content=message.get("message", ""),
+            user_id=current_user.id
+        )
+        
+        return {
+            "message": response,
+            "status": "success"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.get("/{form_id}/export")
 def export_form(
@@ -590,3 +497,37 @@ def export_form(
     return JSONResponse(content=form.content, headers={
         "Content-Disposition": f"attachment; filename=osha_form_{form_id}.json"
     }) 
+
+@router.post("/generate/{form_type}")
+async def generate_form(
+    form_type: str,
+    form_data: Dict[str, Any],
+    form_filler: FormFillerService = Depends(lambda: FormFillerService())
+) -> Dict[str, str]:
+    """Generate a filled OSHA form"""
+    if form_type not in ["300", "300A", "301"]:
+        raise HTTPException(status_code=400, detail="Invalid form type")
+        
+    filled_form_path = form_filler.generate_form(form_type, form_data)
+    if not filled_form_path:
+        raise HTTPException(status_code=500, detail="Failed to generate form")
+        
+    return {"file_path": filled_form_path}
+
+@router.get("/download/{form_type}/{filename}")
+async def download_form(form_type: str, filename: str):
+    """Download a generated OSHA form"""
+    file_path = os.path.join("generated_forms", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Form not found")
+        
+    with open(file_path, "rb") as f:
+        file_content = f.read()
+        
+    return Response(
+        content=file_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="osha_{form_type}_{filename}"'
+        }
+    ) 

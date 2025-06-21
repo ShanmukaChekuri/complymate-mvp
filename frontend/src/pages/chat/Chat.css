@@ -13,6 +13,8 @@
   overflow-y: auto;
   min-height: 0;
   padding: 24px 16px 16px 16px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 .chatgpt-message {
   margin-bottom: 16px;
@@ -22,6 +24,7 @@
   word-break: break-word;
   font-size: 1rem;
   line-height: 1.5;
+  overflow-wrap: break-word;
 }
 .chatgpt-system {
   background: #e0e7ef;
@@ -48,6 +51,7 @@
   padding: 12px 16px;
   border-top: 1px solid #e5e7eb;
   background: #fff;
+  flex-shrink: 0;
 }
 .chatgpt-input-bar textarea {
   flex: 1;
@@ -59,6 +63,8 @@
   background: #f1f5f9;
   margin-right: 8px;
   outline: none;
+  min-height: 44px;
+  max-height: 120px;
 }
 .chatgpt-send-btn {
   background: #2563eb;
@@ -79,3 +85,92 @@
   min-height: 100vh;
   background: #f7f8fa;
 }
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .chatgpt-messages {
+    padding: 16px 12px 12px 12px;
+  }
+
+  .chatgpt-message {
+    max-width: 90%;
+    font-size: 0.95rem;
+  }
+
+  .chatgpt-input-bar {
+    padding: 8px 12px;
+  }
+
+  .chatgpt-input-bar textarea {
+    font-size: 0.95rem;
+    padding: 8px;
+  }
+}
+
+/* Scrollbar styling */
+.chatgpt-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chatgpt-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chatgpt-messages::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.chatgpt-messages::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark .chatgpt-messages::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark .chatgpt-messages::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Ensure proper height constraints */
+.chat-container {
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+/* Fix for long content */
+.message-content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure buttons don't cause layout shifts */
+.action-buttons {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Responsive text sizing */
+@media (max-width: 640px) {
+  .message-content {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+/* Prevent horizontal overflow has been removed as it's too broad */

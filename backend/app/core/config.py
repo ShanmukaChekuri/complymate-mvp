@@ -9,15 +9,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # CORS Configuration
-    CORS_ORIGINS: List[AnyHttpUrl] = []
-
-    @validator("CORS_ORIGINS", pre=True)
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
-            return v
-        raise ValueError(v)
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     # Database Configuration
     DATABASE_URL: Optional[str] = None
@@ -44,7 +36,7 @@ class Settings(BaseSettings):
 
     # AI Service Configuration
     OPENROUTER_API_KEY: str
-    OPENROUTER_MODEL: str = "anthropic/claude-3-opus-20240229"
+    OPENROUTER_MODEL: str
 
     # File Storage Configuration
     UPLOAD_DIR: str = "uploads"

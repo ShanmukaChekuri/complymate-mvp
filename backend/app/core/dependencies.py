@@ -5,8 +5,16 @@ from app.core.config import settings
 from app.core.security import decode_token
 from app.db.session import SessionLocal
 from app.models.user import User
+from app.services.context_manager import ContextManager
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login")
+
+# --- Singleton instance of ContextManager ---
+context_manager_singleton = ContextManager()
+
+def get_context_manager() -> ContextManager:
+    """Dependency to get the singleton ContextManager instance."""
+    return context_manager_singleton
 
 def get_db():
     db = SessionLocal()

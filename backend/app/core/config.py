@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     VERSION: str = "0.1.0"
     API_V1_STR: str = "/api/v1"
     
+    # Base directory for the application
+    BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    
     # CORS Configuration
     CORS_ORIGINS: List[AnyHttpUrl] = []
 

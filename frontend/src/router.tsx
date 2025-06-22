@@ -13,11 +13,13 @@ const Loading = () => (
 );
 
 // Lazy load pages for better performance
+const LandingPage = lazy(() => import('./pages/marketing/LandingPage'));
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Forms = lazy(() => import('./pages/forms/Forms'));
+const FormBuilder = lazy(() => import('./pages/forms/FormBuilder'));
 const Chat = lazy(() => import('./pages/chat/Chat'));
 const Settings = lazy(() => import('./pages/settings/Settings'));
 const ComplianceCheck = lazy(() => import('./pages/ComplianceCheck'));
@@ -36,7 +38,7 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Navigate to="/dashboard" replace />,
+        element: withSuspense(LandingPage),
       },
       {
         path: 'auth',
@@ -75,6 +77,10 @@ export const router = createBrowserRouter([
           {
             path: 'forms',
             element: withSuspense(Forms),
+          },
+          {
+            path: 'forms/builder/:templateId',
+            element: withSuspense(FormBuilder),
           },
           {
             path: 'settings',

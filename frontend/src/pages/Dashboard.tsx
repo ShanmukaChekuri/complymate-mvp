@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import PremiumStatCard from '../components/dashboard/PremiumStatCard';
-import HeroUploadCard from '../components/dashboard/HeroUploadCard';
 import { getDashboardStats } from '../services/dashboardService';
 import type { DashboardStats } from '../types/dashboard';
+import { useNavigate } from 'react-router-dom';
 import {
   CheckCircleIcon,
   DocumentIcon,
@@ -23,6 +23,7 @@ const gradients = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -155,42 +156,43 @@ export default function Dashboard() {
             <BoltIcon className="w-6 h-6 inline-block" />
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Hero Upload Card */}
-          <HeroUploadCard />
-
-          {/* Other Quick Actions */}
-          <div className="flex flex-col gap-6 md:col-span-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {/* Start AI Chat */}
-              <div className="rounded-xl bg-gradient-to-br from-blue-500/80 to-blue-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
-                <ChatBubbleLeftRightIcon className="w-8 h-8 text-white animate-pulse group-hover:scale-110 transition-transform" />
-                <div className="mt-2 text-white font-semibold">Start AI Chat</div>
-                <div className="text-white/80 text-xs mt-1">Get AI assistance with forms</div>
-                <div className="mt-2 text-xs text-white/60">⌘+A</div>
-              </div>
-              {/* Generate Report */}
-              <div className="rounded-xl bg-gradient-to-br from-green-500/80 to-green-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
-                <ChartBarIcon className="w-8 h-8 text-white group-hover:rotate-6 transition-transform" />
-                <div className="mt-2 text-white font-semibold">Generate Report</div>
-                <div className="text-white/80 text-xs mt-1">Export compliance reports</div>
-                <div className="mt-2 text-xs text-white/60">⌘+E</div>
-              </div>
-              {/* Quick Search */}
-              <div className="rounded-xl bg-gradient-to-br from-purple-500/80 to-purple-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
-                <MagnifyingGlassIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                <div className="mt-2 text-white font-semibold">Quick Search</div>
-                <div className="text-white/80 text-xs mt-1">Find forms instantly</div>
-                <div className="mt-2 text-xs text-white/60">⌘+K</div>
-              </div>
-              {/* Schedule Review */}
-              <div className="rounded-xl bg-gradient-to-br from-orange-500/80 to-orange-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
-                <CalendarDaysIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                <div className="mt-2 text-white font-semibold">Schedule Review</div>
-                <div className="text-white/80 text-xs mt-1">Plan compliance review</div>
-                <div className="mt-2 text-xs text-white/60">⌘+R</div>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Start AI Chat */}
+          <div 
+            className="rounded-xl bg-gradient-to-br from-blue-500/80 to-blue-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group"
+            onClick={() => navigate('/chat')}
+          >
+            <ChatBubbleLeftRightIcon className="w-8 h-8 text-white animate-pulse group-hover:scale-110 transition-transform" />
+            <div className="mt-2 text-white font-semibold">Start AI Chat</div>
+            <div className="text-white/80 text-xs mt-1 text-center">Get AI assistance with forms</div>
+            <div className="mt-2 text-xs text-white/60">⌘+A</div>
+          </div>
+          
+          {/* Create New Form */}
+          <div 
+            className="rounded-xl bg-gradient-to-br from-green-500/80 to-green-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group"
+            onClick={() => navigate('/forms')}
+          >
+            <DocumentIcon className="w-8 h-8 text-white group-hover:rotate-6 transition-transform" />
+            <div className="mt-2 text-white font-semibold">Create New Form</div>
+            <div className="text-white/80 text-xs mt-1 text-center">Start OSHA compliance form</div>
+            <div className="mt-2 text-xs text-white/60">⌘+N</div>
+          </div>
+          
+          {/* Generate Report */}
+          <div className="rounded-xl bg-gradient-to-br from-purple-500/80 to-purple-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
+            <ChartBarIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+            <div className="mt-2 text-white font-semibold">Generate Report</div>
+            <div className="text-white/80 text-xs mt-1 text-center">Export compliance reports</div>
+            <div className="mt-2 text-xs text-white/60">⌘+E</div>
+          </div>
+          
+          {/* Quick Search */}
+          <div className="rounded-xl bg-gradient-to-br from-orange-500/80 to-orange-700/80 shadow-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:scale-105 transition-transform group">
+            <MagnifyingGlassIcon className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
+            <div className="mt-2 text-white font-semibold">Quick Search</div>
+            <div className="text-white/80 text-xs mt-1 text-center">Find forms instantly</div>
+            <div className="mt-2 text-xs text-white/60">⌘+K</div>
           </div>
         </div>
       </div>

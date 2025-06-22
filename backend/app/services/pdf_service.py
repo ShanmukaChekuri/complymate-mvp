@@ -96,4 +96,17 @@ async def identify_missing_fields(fields: Dict[str, FieldConfidence], form_type:
 async def calculate_completion_percentage(fields: Dict[str, FieldConfidence], form_type: OSHAFormType) -> float:
     required = ["Employer name", "Year", "Total cases"]
     filled = sum(1 for f in required if fields.get(f) and fields[f].value)
-    return round(100 * filled / len(required), 2) if required else 0.0 
+    return round(100 * filled / len(required), 2) if required else 0.0
+
+# 7. Process PDF from file path (for templates and static files)
+async def process_pdf_from_path(pdf_path: str) -> str:
+    """
+    Extract text content from a PDF file at the given path.
+    Used for processing template files and existing PDFs.
+    """
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        return text
+    except Exception as e:
+        raise Exception(f"Failed to process PDF at {pdf_path}: {str(e)}") 

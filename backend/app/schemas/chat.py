@@ -43,4 +43,9 @@ class ChatSessionResponse(ChatSessionBase):
     messages: List[ChatMessageResponse] = []
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class ChatResponse(BaseModel):
+    response: str
+    session_id: Optional[str] = None
+    message_id: Optional[str] = None 

@@ -1,6 +1,7 @@
 from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+import os
 
 from app.core.security import get_current_user
 from app.db.session import get_db
@@ -12,9 +13,19 @@ from app.schemas.chat import (
     ChatSessionResponse,
     ChatMessageCreate,
     ChatMessageResponse,
+    ChatResponse,
 )
+from app.services.pdf_service import process_pdf_from_path
+from app.core.config import settings
+from pydantic import BaseModel
 
 router = APIRouter()
+
+TEMPLATES_DIR = os.path.join(settings.BASE_DIR, "static", "templates")
+
+class TemplateChatRequest(BaseModel):
+    message: str
+    template_name: str
 
 @router.post("/sessions", response_model=ChatSessionResponse)
 def create_chat_session(
@@ -155,4 +166,31 @@ def list_chat_messages(
     messages = db.query(ChatMessage).filter(
         ChatMessage.session_id == session_id
     ).offset(skip).limit(limit).all()
-    return messages 
+    return messages
+
+@router.post("/template", response_model=ChatResponse)
+async def chat_with_template(
+    *,
+    request: TemplateChatRequest,
+    current_user: User = Depends(get_current_user)
+) -> Any:
+    """
+    Handles a chat conversation with a static PDF template.
+    """
+    template_path = os.path.join(TEMPLATES_DIR, request.template_name)
+    
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    try:
+        # Here you would implement your RAG logic using the PDF content
+        # For now, we'll just confirm we can access it
+        document_text = await process_pdf_from_path(template_path)
+        
+        response_message = f"Interacting with template '{request.template_name}'. It has {len(document_text)} characters. You asked: '{request.message}'"
+
+        return ChatResponse(response=response_message)
+    except Exception as e:
+        # Log the error
+        print(f"Error processing template chat: {e}")
+        raise HTTPException(status_code=500, detail="Failed to process chat with template.") 

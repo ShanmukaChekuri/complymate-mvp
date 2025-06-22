@@ -64,11 +64,9 @@ export default function DashboardLayout() {
           </nav>
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 pl-64 pt-16">
-          <div className="container mx-auto p-6">
-            <Outlet />
-          </div>
+        {/* Main content is now a flex container that grows */}
+        <main className="flex flex-col flex-1 pl-64 pt-16">
+          <Outlet />
         </main>
       </div>
     </div>

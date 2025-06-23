@@ -18,6 +18,7 @@ const Forms: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'all' | 'templates' | 'drafts' | 'completed'>('templates');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [aiFormDescription, setAiFormDescription] = useState('');
 
   // Enhanced mock forms with OSHA focus
   const mockForms: FormTemplate[] = [
@@ -26,7 +27,7 @@ const Forms: React.FC = () => {
       name: 'OSHA 300 Injury & Illness Log',
       description: 'Record work-related injuries and illnesses during the year',
       category: 'OSHA Required',
-      lastModified: 'Built-in Template',
+      lastModified: 'Modified Built-in Template',
       status: 'template',
       oshaForm: 'OSHA 300',
       requiredFields: 15,
@@ -37,7 +38,7 @@ const Forms: React.FC = () => {
       name: 'OSHA 300A Summary Report',
       description: 'Annual summary of work-related injuries and illnesses',
       category: 'OSHA Required',
-      lastModified: 'Built-in Template',
+      lastModified: 'Modified Built-in Template',
       status: 'template',
       oshaForm: 'OSHA 300A',
       requiredFields: 12,
@@ -48,7 +49,7 @@ const Forms: React.FC = () => {
       name: 'OSHA 301 Incident Report',
       description: 'Detailed incident report for individual cases',
       category: 'OSHA Required',
-      lastModified: 'Built-in Template',
+      lastModified: 'Modified Built-in Template',
       status: 'template',
       oshaForm: 'OSHA 301',
       requiredFields: 20,
@@ -79,7 +80,7 @@ const Forms: React.FC = () => {
       name: 'Hazard Communication Program',
       description: 'Chemical safety data sheet and communication program',
       category: 'Chemical Safety',
-      lastModified: 'Built-in Template',
+      lastModified: 'Modified Built-in Template',
       status: 'template',
       requiredFields: 18,
       estimatedTime: '25 mins'
@@ -122,25 +123,36 @@ const Forms: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <span className="status-success">✓ Completed</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+            ✓ Completed
+          </span>
+        );
       case 'draft':
-        return <span className="status-warning">📝 Draft</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+            📝 In Progress
+          </span>
+        );
       case 'template':
-        return <span className="status-neutral">📋 Template</span>;
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+            📋 Template
+          </span>
+        );
       default:
         return null;
     }
   };
 
   const tabs = [
-    { id: 'templates', label: 'OSHA Templates', count: mockForms.filter(f => f.status === 'template').length },
-    { id: 'drafts', label: 'In Progress', count: mockForms.filter(f => f.status === 'draft').length },
-    { id: 'completed', label: 'Completed', count: mockForms.filter(f => f.status === 'completed').length },
-    { id: 'all', label: 'All Forms', count: mockForms.length }
+    { id: 'templates', label: 'OSHA Templates', count: mockForms.filter(f => f.status === 'template').length, icon: '📋' },
+    { id: 'drafts', label: 'In Progress', count: mockForms.filter(f => f.status === 'draft').length, icon: '📝' },
+    { id: 'completed', label: 'Completed', count: mockForms.filter(f => f.status === 'completed').length, icon: '✅' },
+    { id: 'all', label: 'All Forms', count: mockForms.length, icon: '📊' }
   ];
 
   const handleCreateFromTemplate = (templateId: string) => {
-    // Navigate to form builder with template ID
     navigate(`/forms/builder/${templateId}`);
   };
 
@@ -148,536 +160,219 @@ const Forms: React.FC = () => {
     setShowCreateForm(true);
   };
 
+  const handleGenerateAIForm = () => {
+    if (!aiFormDescription.trim()) return;
+    
+    // Simulate AI form generation
+    console.log('Generating form for:', aiFormDescription);
+    setShowCreateForm(false);
+    setAiFormDescription('');
+    
+    // In real app, this would navigate to the generated form
+    // navigate(`/forms/ai-generated/${generatedFormId}`);
+  };
+
   return (
-    <div className="forms-container">
-      {/* Header */}
-      <div className="forms-header">
-        <div className="forms-header-content">
-          <div className="forms-title-section">
-            <h1 className="text-heading-2">🏗️ OSHA Forms Engine</h1>
-            <p className="text-body text-secondary">AI-powered OSHA compliance forms with auto-generation</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="p-6 space-y-6">
+        {/* AI Wizard Banner */}
+        <div className="rounded-xl p-6 bg-gradient-to-r from-blue-500 to-cyan-500 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
+                🤖
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">AI Form Assistant</h3>
+                <p className="text-blue-100">Tell our AI what happened, and we'll automatically fill out the correct OSHA forms for you. Save 80% of your time with intelligent auto-completion.</p>
+              </div>
+            </div>
+            <button
+              onClick={handleAIFormWizard}
+              className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
+            >
+              Start AI Wizard
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="forms-content">
-        {/* Enhanced Action Bar */}
-        <div className="forms-action-bar glass-card">
-          <div className="forms-action-content">
-            <div className="forms-overview">
-              <div className="forms-stats">
-                <div className="stat-item">
-                  <span className="stat-number">8</span>
-                  <span className="stat-label">Total Forms</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">3</span>
-                  <span className="stat-label">OSHA Required</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-number">75%</span>
-                  <span className="stat-label">Compliance</span>
-                </div>
-              </div>
-              <p className="text-body-small text-secondary">Create, fill, and generate OSHA compliance forms with AI assistance</p>
-            </div>
-            <div className="forms-actions">
-              <button className="btn-secondary" onClick={() => setShowCreateForm(true)}>
-                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="7,10 12,15 17,10"/>
-                  <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                Upload PDF
-              </button>
-              <button className="btn-primary" onClick={handleAIFormWizard}>
-                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L13.09 8.26L19 7L14.74 11.26L21 12L14.74 12.74L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12.74L3 12L9.26 11.26L5 7L10.91 8.26L12 2Z"/>
-                </svg>
-                AI Form Wizard
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Quick Start */}
-        {activeTab === 'templates' && (
-          <div className="ai-quick-start glass-card">
-            <div className="ai-quick-start-content">
-              <div className="ai-icon gradient-apple">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L13.09 8.26L19 7L14.74 11.26L21 12L14.74 12.74L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12.74L3 12L9.26 11.26L5 7L10.91 8.26L12 2Z"/>
-                </svg>
-              </div>
-              <div className="ai-content">
-                <h3 className="text-heading-4">🤖 AI-Powered Form Creation</h3>
-                <p className="text-body-small text-secondary">
-                  Tell our AI what happened, and we'll automatically fill out the correct OSHA forms for you. 
-                  Save 80% of your time with intelligent auto-completion.
-                </p>
-              </div>
-              <button className="btn-primary" onClick={handleAIFormWizard}>
-                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 6v6l4 2"/>
-                  <circle cx="12" cy="12" r="10"/>
-                </svg>
-                Start AI Wizard
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Tabs */}
-        <div className="forms-tabs">
-          <div className="tabs-container glass-card-flat">
-            <div className="tabs-list">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
-                >
-                  <span className="tab-label">{tab.label}</span>
-                  <span className="tab-count">{tab.count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="flex space-x-1 overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-blue-500 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              <span>{tab.label}</span>
+              <span className={`px-2 py-1 rounded-full text-xs ${
+                activeTab === tab.id
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-700 text-slate-300'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Forms Grid */}
-        <div className="forms-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredForms.map((form) => (
-            <div key={form.id} className="form-card glass-card animate-fade-in">
-              <div className="form-card-header">
-                <div className="form-icon">
-                  {form.oshaForm ? (
-                    <div className="osha-badge">
-                      <span className="osha-text">{form.oshaForm}</span>
+            <div
+              key={form.id}
+              className="bg-slate-800/50 border border-slate-700 hover:border-slate-600 rounded-xl p-6 transition-all duration-200 hover:scale-105 cursor-pointer"
+              onClick={() => handleCreateFromTemplate(form.id)}
+            >
+              {/* Form Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  {form.oshaForm && (
+                    <div className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 text-red-800 text-xs font-medium mb-2 dark:bg-red-900/30 dark:text-red-400">
+                      {form.oshaForm}
                     </div>
-                  ) : form.status === 'completed' ? (
-                    <svg className="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                      <polyline points="22,4 12,14.01 9,11.01"/>
-                    </svg>
-                  ) : (
-                    <svg className="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14,2 14,8 20,8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10,9 9,9 8,9"/>
-                    </svg>
                   )}
-                </div>
-                <div className="form-status">
-                  {getStatusBadge(form.status)}
-                </div>
-              </div>
-
-              <div className="form-card-content">
-                <h3 className="form-title text-heading-4">{form.name}</h3>
-                <p className="form-description text-body-small text-secondary">{form.description}</p>
-                
-                {form.progress !== undefined && (
-                  <div className="form-progress">
-                    <div className="progress-info">
-                      <span className="text-caption">Progress</span>
-                      <span className="text-caption">{form.progress}%</span>
-                    </div>
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill"
-                        style={{ width: `${form.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="form-details">
-                  <div className="form-detail-item">
-                    <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M9 11H5a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h4V11z"/>
-                      <path d="M9 11V9a2 2 0 0 1 4 0v2"/>
-                      <path d="M15 11h4a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-4V11z"/>
-                    </svg>
-                    <span className="text-caption">{form.requiredFields} fields</span>
-                  </div>
-                  <div className="form-detail-item">
-                    <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <polyline points="12,6 12,12 16,14"/>
-                    </svg>
-                    <span className="text-caption">{form.estimatedTime}</span>
-                  </div>
-                </div>
-
-                <div className="form-meta">
-                  <div className="form-category">
-                    <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M20 6L9 17l-5-5"/>
-                    </svg>
-                    <span className="text-caption">{form.category}</span>
-                  </div>
-                  <span className="form-modified text-caption">Modified {form.lastModified}</span>
+                  <h3 className="font-semibold mb-2 text-white">
+                    {form.name}
+                  </h3>
+                  <p className="text-sm mb-3 text-slate-400">
+                    {form.description}
+                  </p>
                 </div>
               </div>
 
-              <div className="form-card-actions">
-                {form.status === 'template' ? (
-                  <button 
-                    className="btn-primary-full"
-                    onClick={() => handleCreateFromTemplate(form.id)}
-                  >
-                    <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M12 2L13.09 8.26L19 7L14.74 11.26L21 12L14.74 12.74L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12.74L3 12L9.26 11.26L5 7L10.91 8.26L12 2Z"/>
-                    </svg>
-                    Use Template with AI
-                  </button>
-                ) : (
-                  <>
-                    <button className="btn-ghost">
-                      <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                      </svg>
-                      View
-                    </button>
-                    <button className="btn-ghost">
-                      <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                      Edit
-                    </button>
-                    {form.status === 'completed' && (
-                      <button className="btn-ghost">
-                        <svg className="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7,10 12,15 17,10"/>
-                          <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Export PDF
-                      </button>
-                    )}
-                  </>
-                )}
+              {/* Progress Bar for drafts */}
+              {form.status === 'draft' && form.progress && (
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-slate-300">
+                      Progress
+                    </span>
+                    <span className="text-sm text-slate-400">
+                      {form.progress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${form.progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {/* Form Details */}
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">
+                    📝 Fields
+                  </span>
+                  <span className="text-sm font-medium text-slate-300">
+                    {form.requiredFields}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-400">
+                    ⏱️ Time
+                  </span>
+                  <span className="text-sm font-medium text-slate-300">
+                    {form.estimatedTime}
+                  </span>
+                </div>
+              </div>
+
+              {/* Form Footer */}
+              <div className="flex items-center justify-between">
+                {getStatusBadge(form.status)}
+                <span className="text-xs text-slate-500">
+                  {form.lastModified}
+                </span>
               </div>
             </div>
           ))}
         </div>
 
+        {/* Empty State */}
         {filteredForms.length === 0 && (
-          <div className="empty-state glass-card">
-            <div className="empty-state-content">
-              <div className="empty-state-icon">
-                <svg className="icon-xl" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                  <polyline points="14,2 14,8 20,8"/>
-                  <line x1="16" y1="13" x2="8" y2="13"/>
-                  <line x1="16" y1="17" x2="8" y2="17"/>
-                  <polyline points="10,9 9,9 8,9"/>
-                </svg>
-              </div>
-              <h3 className="text-heading-4">No forms found</h3>
-              <p className="text-body-small text-secondary">Start with our AI-powered OSHA templates</p>
-              <button className="btn-primary" onClick={handleAIFormWizard}>
-                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L13.09 8.26L19 7L14.74 11.26L21 12L14.74 12.74L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12.74L3 12L9.26 11.26L5 7L10.91 8.26L12 2Z"/>
-                </svg>
-                Create with AI
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* AI Form Wizard Modal */}
-        {showCreateForm && (
-          <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
-            <div className="modal-content glass-card" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3 className="text-heading-3">🤖 AI Form Wizard</h3>
-                <button 
-                  className="modal-close"
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              </div>
-              <div className="modal-body">
-                <p className="text-body text-secondary mb-4">
-                  Describe what happened or what form you need, and our AI will help you create and fill it out automatically.
-                </p>
-                <div className="ai-examples">
-                  <h4 className="text-heading-5 mb-2">Try saying:</h4>
-                  <div className="example-prompts">
-                    <button className="example-prompt">
-                      "Employee fell from ladder in warehouse yesterday"
-                    </button>
-                    <button className="example-prompt">
-                      "Need to create Q4 injury summary report"
-                    </button>
-                    <button className="example-prompt">
-                      "Chemical spill in manufacturing area"
-                    </button>
-                  </div>
-                </div>
-                <textarea 
-                  className="ai-input"
-                  placeholder="Describe your situation or the form you need..."
-                  rows={4}
-                />
-              </div>
-              <div className="modal-footer">
-                <button className="btn-secondary" onClick={() => setShowCreateForm(false)}>
-                  Cancel
-                </button>
-                <button className="btn-primary">
-                  <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2L13.09 8.26L19 7L14.74 11.26L21 12L14.74 12.74L19 17L13.09 15.74L12 22L10.91 15.74L5 17L9.26 12.74L3 12L9.26 11.26L5 7L10.91 8.26L12 2Z"/>
-                  </svg>
-                  Generate Form with AI
-                </button>
-              </div>
-            </div>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📋</div>
+            <h3 className="text-xl font-semibold mb-2 text-white">
+              No forms found
+            </h3>
+            <p className="text-slate-400 mb-4">
+              Try switching to a different tab or create a new form.
+            </p>
+            <button
+              onClick={handleAIFormWizard}
+              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Create New Form
+            </button>
           </div>
         )}
       </div>
 
-      <style>{`
-        .forms-stats {
-          display: flex;
-          gap: 1.5rem;
-          margin-bottom: 0.5rem;
-        }
+      {/* AI Form Wizard Modal */}
+      {showCreateForm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md rounded-2xl p-6 bg-slate-800 border border-slate-700">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
+                <span className="text-white text-lg">🤖</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  AI Form Wizard
+                </h3>
+                <p className="text-sm text-slate-400">
+                  Describe what happened or what form you need
+                </p>
+              </div>
+            </div>
 
-        .stat-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
-        }
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-slate-300">
+                  Describe your situation or the form you need...
+                </label>
+                <textarea
+                  value={aiFormDescription}
+                  onChange={(e) => setAiFormDescription(e.target.value)}
+                  placeholder="Example: An employee fell from a ladder in the warehouse yesterday and injured their wrist. They went to the hospital for treatment..."
+                  className="w-full h-32 px-4 py-3 rounded-lg border resize-none bg-slate-700 border-slate-600 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
 
-        .stat-number {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--color-primary-600);
-          line-height: 1;
-        }
-
-        .stat-label {
-          font-size: 0.75rem;
-          color: var(--color-text-secondary);
-          font-weight: 500;
-        }
-
-        .ai-quick-start {
-          margin-bottom: 1.5rem;
-        }
-
-        .ai-quick-start-content {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-        }
-
-        .ai-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .ai-icon svg {
-          width: 24px;
-          height: 24px;
-          color: white;
-        }
-
-        .ai-content {
-          flex: 1;
-        }
-
-        .osha-badge {
-          background: linear-gradient(135deg, #dc2626, #b91c1c);
-          color: white;
-          padding: 0.25rem 0.5rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-align: center;
-        }
-
-        .form-details {
-          display: flex;
-          gap: 1rem;
-          margin: 0.75rem 0;
-          padding: 0.5rem 0;
-          border-top: 1px solid var(--color-border);
-          border-bottom: 1px solid var(--color-border);
-        }
-
-        .form-detail-item {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-        }
-
-        .form-detail-item svg {
-          width: 14px;
-          height: 14px;
-          color: var(--color-text-secondary);
-        }
-
-        .btn-primary-full {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600));
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.875rem;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-primary-full:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 25px -8px var(--color-primary-500);
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(4px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal-content {
-          width: 90%;
-          max-width: 600px;
-          max-height: 80vh;
-          overflow-y: auto;
-        }
-
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.5rem 1.5rem 0;
-        }
-
-        .modal-close {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0.5rem;
-          color: var(--color-text-secondary);
-        }
-
-        .modal-close svg {
-          width: 20px;
-          height: 20px;
-        }
-
-        .modal-body {
-          padding: 1.5rem;
-        }
-
-        .modal-footer {
-          display: flex;
-          gap: 1rem;
-          justify-content: flex-end;
-          padding: 0 1.5rem 1.5rem;
-        }
-
-        .ai-examples {
-          margin-bottom: 1.5rem;
-        }
-
-        .example-prompts {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .example-prompt {
-          background: var(--color-surface-100);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 0.75rem 1rem;
-          text-align: left;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 0.875rem;
-          color: var(--color-text-primary);
-        }
-
-        .example-prompt:hover {
-          background: var(--color-surface-200);
-          border-color: var(--color-primary-300);
-        }
-
-        .ai-input {
-          width: 100%;
-          padding: 1rem;
-          border: 2px solid var(--color-border);
-          border-radius: 8px;
-          background: var(--color-surface-100);
-          color: var(--color-text-primary);
-          font-family: inherit;
-          resize: vertical;
-          min-height: 100px;
-        }
-
-        .ai-input:focus {
-          outline: none;
-          border-color: var(--color-primary-400);
-          box-shadow: 0 0 0 3px var(--color-primary-100);
-        }
-
-        @media (max-width: 768px) {
-          .forms-stats {
-            gap: 1rem;
-          }
-
-          .stat-number {
-            font-size: 1.25rem;
-          }
-
-          .ai-quick-start-content {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .form-details {
-            flex-direction: column;
-            gap: 0.5rem;
-          }
-        }
-      `}</style>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCreateForm(false)}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors bg-slate-700 text-slate-300 hover:bg-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleGenerateAIForm}
+                  disabled={!aiFormDescription.trim()}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    aiFormDescription.trim()
+                      ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600'
+                      : 'bg-slate-700 text-slate-500'
+                  } disabled:cursor-not-allowed`}
+                >
+                  ✨ Generate Form with AI
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-}; 
+};
 
 export default Forms;
